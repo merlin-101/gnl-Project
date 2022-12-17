@@ -6,7 +6,7 @@
 /*   By: rnarciso <rnarciso@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/13 04:16:09 by rnarciso          #+#    #+#             */
-/*   Updated: 2022/12/16 06:43:44 by rnarciso         ###   ########.fr       */
+/*   Updated: 2022/12/17 00:23:53 by rnarciso         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,6 +22,10 @@
 
 # ifndef BUFFER_SIZE
 #  define BUFFER_SIZE 42
+# endif
+
+# ifndef MAX_FD
+#  define MAX_FD 1024
 # endif
 
 char		*get_next_line(int fd);

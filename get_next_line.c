@@ -6,7 +6,7 @@
 /*   By: rnarciso <rnarciso@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/13 04:15:17 by rnarciso          #+#    #+#             */
-/*   Updated: 2022/12/16 05:25:56 by rnarciso         ###   ########.fr       */
+/*   Updated: 2022/12/17 00:23:34 by rnarciso         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,7 +37,7 @@ static	char	*list_checker(int fd, char *buff, char *backup)
 		backup = ft_strjoin(temp, buff);
 		free(temp);
 		temp = NULL;
-		if (ft_strchr(buff, '\n'))
+		if (ft_strchr(buff, '\n') || bytes < BUFFER_SIZE)
 			break ;
 	}
 	return (backup);
@@ -72,19 +72,27 @@ char	*get_next_line(int fd)
 {
 	char		*buff;
 	char		*line;
-	static char	*backup;
+	static char	*backup[MAX_FD];
 
-	if ((BUFFER_SIZE <= 0) || (fd < 0))
+	if ((BUFFER_SIZE <= 0) || (fd < 0) || fd >= MAX_FD)
 		return (0);
 	buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	if (!buff)
+	{
+		free(buff);
+		buff = NULL;
 		return (0);
-	line = list_checker(fd, buff, backup);
+	}
+	line = list_checker(fd, buff, backup[fd]);
+	if (!line)
+	{
+		free(buff);
+		buff = NULL;
+		return (NULL);
+	}
+	backup[fd] = ultimate_deletion(line);
 	free(buff);
 	buff = NULL;
-	if (!line)
-		return (NULL);
-	backup = ultimate_deletion(line);
 	return (line);
 }
 
