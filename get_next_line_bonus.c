@@ -6,7 +6,7 @@
 /*   By: rnarciso <rnarciso@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2022/12/16 05:08:43 by rnarciso          #+#    #+#             */
-/*   Updated: 2022/12/16 08:36:13 by rnarciso         ###   ########.fr       */
+/*   Updated: 2022/12/17 01:26:38 by rnarciso         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ static	char	*list_checker(int fd, char *buff, char *backup)
 	{
 		bytes = read(fd, buff, BUFFER_SIZE);
 		if (bytes == -1)
-			return (0);
+			return (NULL);
 		else if (bytes == 0)
 			break ;
 		buff[bytes] = '\0';
@@ -75,7 +75,7 @@ char	*get_next_line(int fd)
 	static char	*backup[MAX_FD];
 
 	if ((BUFFER_SIZE <= 0) || (fd < 0) || fd >= MAX_FD)
-		return (0);
+		return (NULL);
 	buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
 	if (!buff)
 	{
