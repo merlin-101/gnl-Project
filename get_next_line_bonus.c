@@ -5,110 +5,133 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: rnarciso <rnarciso@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2022/12/16 05:08:43 by rnarciso          #+#    #+#             */
-/*   Updated: 2022/12/17 01:26:38 by rnarciso         ###   ########.fr       */
+/*   Created: 2022/12/27 15:36:34 by rnarciso          #+#    #+#             */
+/*   Updated: 2022/12/27 17:18:32 by rnarciso         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "get_next_line_bonus.h"	
+#include "get_next_line_bonus.h"
 
-/* 
-this function will get and search for the
-line with the first '\n', while preventing errors
-*/
-
-static	char	*list_checker(int fd, char *buff, char *backup)
+// just to be cautious, Valgrind isn't that good.
+char	*memory_leak_destroyer_fu(char *s)
 {
-	char	*temp;
-	int		bytes;
+	free(s);
+	s = NULL;
+	return (NULL);
+}
+
+// this will check if there is an existing '\n'
+// during the reading, and return the whole read
+// if it found the '\n' char
+char	*read_and_get_line(int fd, char *backup)
+{
+	ssize_t		bytes;
+	char		*buffer;
 
 	bytes = 1;
-	while (bytes != '\0')
+	buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+	if (!buffer)
+		return (NULL);
+	while (bytes > 0 && !ft_strchr(backup, '\n'))
 	{
-		bytes = read(fd, buff, BUFFER_SIZE);
-		if (bytes == -1)
+		bytes = read(fd, buffer, BUFFER_SIZE);
+		if (bytes < 0)
+		{
+			if (backup && ft_strchr(backup, '\0'))
+				free(backup);
+			free(buffer);
 			return (NULL);
-		else if (bytes == 0)
+		}
+		if (bytes == 0)
 			break ;
-		buff[bytes] = '\0';
-		if (!backup)
-			backup = ft_strdup("");
-		temp = backup;
-		backup = ft_strjoin(temp, buff);
-		free(temp);
-		temp = NULL;
-		if (ft_strchr(buff, '\n') || bytes < BUFFER_SIZE)
-			break ;
+		buffer[bytes] = 0;
+		backup = ft_strjoin(backup, buffer);
 	}
+	memory_leak_destroyer_fu(buffer);
 	return (backup);
 }
 
-/*
-this function will remove the extra strings that appear after the '\n'
-by counting the lenght of the string before the '\n' appears.
-*/
-
-static	char	*ultimate_deletion(char *backup)
+// this will cleanse the read and returned line from the previous function
+// making it only the first line
+char	*correcting_the_line(char *backup)
 {
-	size_t	counter;
-	char	*s;
+	char	*updated_line;
+	int		stop;
 
-	counter = 0;
-	while (backup[counter] != '\n' && backup[counter])
-		counter++;
-	if (!backup[counter] || backup[1] == '\0')
+	stop = 0;
+	if (ft_strlen(backup) == 0)
 		return (NULL);
-	s = ft_substr(backup, counter + 1, (ft_strlen(backup) - counter));
-	if (*s == '\0')
-	{
-		free(s);
-		s = NULL;
-	}
-	backup[counter + 1] = '\0';
-	return (s);
+	while (backup[stop] != '\n' && backup[stop])
+		stop++;
+	updated_line = ft_substr(backup, 0, (stop + 1));
+	if (!updated_line)
+		return (memory_leak_destroyer_fu(updated_line));
+	return (updated_line);
 }
 
+// this will update the backup, by adding only the extra
+// that was previously ignored on the correct line
+char	*backup_update(char *backup)
+{
+	int		stop;
+	char	*updated_backup;
+
+	stop = 0;
+	while (backup[stop] != '\n' && backup[stop])
+		stop++;
+	if (!backup[stop] || backup[1] == '\0')
+		return (memory_leak_destroyer_fu(backup));
+	updated_backup = ft_substr(backup, (stop + 1),
+			(ft_strlen(backup) - stop));
+	if (!updated_backup)
+		return (memory_leak_destroyer_fu(updated_backup));
+	free(backup);
+	return (updated_backup);
+}
+
+// main function
 char	*get_next_line(int fd)
 {
-	char		*buff;
-	char		*line;
-	static char	*backup[MAX_FD];
+	char		*correct_line;
+	static char	*backup[FD_MAX];
 
-	if ((BUFFER_SIZE <= 0) || (fd < 0) || fd >= MAX_FD)
+	if (fd > FD_MAX || fd < 0 || BUFFER_SIZE <= 0)
 		return (NULL);
-	buff = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
-	if (!buff)
+	if (ft_strchr(backup[fd], '\n') && backup[fd])
 	{
-		free(buff);
-		buff = NULL;
-		return (0);
+		correct_line = correcting_the_line(backup[fd]);
+		backup[fd] = backup_update(backup[fd]);
+		return (correct_line);
 	}
-	line = list_checker(fd, buff, backup[fd]);
-	if (!line)
+	backup[fd] = read_and_get_line(fd, backup[fd]);
+	if (!backup[fd])
 	{
-		free(buff);
-		buff = NULL;
+		memory_leak_destroyer_fu(backup[fd]);
 		return (NULL);
 	}
-	backup[fd] = ultimate_deletion(line);
-	free(buff);
-	buff = NULL;
-	return (line);
+	correct_line = correcting_the_line(backup[fd]);
+	backup[fd] = backup_update(backup[fd]);
+	return (correct_line);
 }
-
 /*
 int	main(void)
 {
 	int		fd;
+	int		i;
 	char	*string;
 
-	fd = open("file.txt", O_RDONLY);
-	if (fd == -1)
-		return (printf("failed to read\n") == -1);
-	string = get_next_line(fd);
-	printf("%s", string);
+	i = 6;
+	fd = open("test.txt", O_RDONLY);
+	if (fd <= -1)
+		return (0);
+	while (i != 0)
+	{
+		string = get_next_line(fd);
+		printf("%s", string);
+		free(string);
+		--i;
+	}
 	close(fd);
-	free(string);
 	return (0);
 }
 */
